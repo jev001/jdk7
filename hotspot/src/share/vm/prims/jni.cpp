@@ -3302,6 +3302,7 @@ DT_RETURN_MARK_DECL(CreateJavaVM, jint);
 _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, void *args) {
   HS_DTRACE_PROBE3(hotspot_jni, CreateJavaVM__entry, vm, penv, args);
 
+    // 创建jvm的名称作为trace
   jint result = JNI_ERR;
   DT_RETURN_MARK(CreateJavaVM, jint, (const jint&)result);
 
@@ -3353,7 +3354,9 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
    */
   bool can_try_again = true;
 
+    // 当前线程创建jvm虚拟机
   result = Threads::create_vm((JavaVMInitArgs*) args, &can_try_again);
+  // 是否创建成功
   if (result == JNI_OK) {
     JavaThread *thread = JavaThread::current();
     /* thread is thread_in_vm here */

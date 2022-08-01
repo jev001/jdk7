@@ -863,6 +863,7 @@ static void *java_start(Thread *thread) {
   return 0;
 }
 
+// 传参数thread 是为了将osThread透传出去 thread.setOsThread
 bool os::create_thread(Thread* thread, ThreadType thr_type, size_t stack_size) {
   assert(thread->osthread() == NULL, "caller responsible");
 

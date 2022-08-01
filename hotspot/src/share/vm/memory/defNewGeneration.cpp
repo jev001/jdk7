@@ -107,6 +107,7 @@ FastEvacuateFollowersClosure(GenCollectedHeap* gch, int level,
 {}
 
 void DefNewGeneration::FastEvacuateFollowersClosure::do_void() {
+    // 循环查找堆内的数据
   do {
     _gch->oop_since_save_marks_iterate(_level, _scan_cur_or_nonheap,
                                        _scan_older);
@@ -543,6 +544,7 @@ void DefNewGeneration::collect(bool   full,
   }
   assert(to()->is_empty(), "Else not collection_attempt_is_safe");
 
+// 标记当前流程为 晋升成功！！！！！
   init_assuming_no_promotion_failure();
 
   TraceTime t1("GC", PrintGC && !PrintGCDetails, true, gclog_or_tty);
@@ -552,24 +554,35 @@ void DefNewGeneration::collect(bool   full,
   SpecializationStats::clear();
 
   // These can be shared for all code paths
+  // 创建一个isAlive 名字的 IsAliveClosure 扫描所有的GCROOTs
   IsAliveClosure is_alive(this);
+  // 创建一个扫描弱引用的
   ScanWeakRefClosure scan_weak_ref(this);
 
+    // 将当前的年龄列表清空??? 不是应该使用年龄列表吗？
   age_table()->clear();
+  // 将to空间清空
   to()->clear(SpaceDecorator::Mangle);
 
+    // 分代收集堆中有存在记忆表, 将其设置为不进行迭代？
   gch->rem_set()->prepare_for_younger_refs_iterate(false);
 
   assert(gch->no_allocs_since_save_marks(0),
          "save marks have not been newly set.");
 
+// 获取收集器策略 比如defNew使用的收集策略是markSweep
   // Not very pretty.
   CollectorPolicy* cp = gch->collector_policy();
 
+    // 创建快速扫描 不需要gc的内存屏障?
   FastScanClosure fsc_with_no_gc_barrier(this, false);
+  // 创建快速扫描 需要gc的内存屏障
   FastScanClosure fsc_with_gc_barrier(this, true);
 
+// 设置晋升失败后的扫描栈内存空间的处理====>获取当前栈空间的变量设置为不需要gc的
+// 晋升失败处理器？？？？从defNew中看 有点 奇怪
   set_promo_failure_scan_stack_closure(&fsc_with_no_gc_barrier);
+  // 搬离追随者？？？？
   FastEvacuateFollowersClosure evacuate_followers(gch, _level, this,
                                                   &fsc_with_no_gc_barrier,
                                                   &fsc_with_gc_barrier);
@@ -577,6 +590,7 @@ void DefNewGeneration::collect(bool   full,
   assert(gch->no_allocs_since_save_marks(0),
          "save marks have not been newly set.");
 
+    // 重要这个地方就是处理所有的强应用roots ☆☆☆☆☆
   gch->gen_process_strong_roots(_level,
                                 true,  // Process younger gens, if any,
                                        // as strong roots.
@@ -585,17 +599,24 @@ void DefNewGeneration::collect(bool   full,
                                 SharedHeap::SO_AllClasses,
                                 &fsc_with_no_gc_barrier,
                                 true,   // walk *all* scavengable nmethods
+                                // 将需要gc的对象都放入此
                                 &fsc_with_gc_barrier);
 
   // "evacuate followers".
   evacuate_followers.do_void();
 
+    // 将弱引用的对象作为保活对象！！！！
   FastKeepAliveClosure keep_alive(this, &scan_weak_ref);
+  // 引用处理器===>将扫描到的强弱软虚roots进行处理
   ReferenceProcessor* rp = ref_processor();
+  // 设置策略为 引用处理策略设置为 删除软应用
   rp->setup_policy(clear_all_soft_refs);
+  // 处理已经被发现的引用节点
   rp->process_discovered_references(&is_alive, &keep_alive, &evacuate_followers,
                                     NULL);
+// 是否存在晋升失败的情况？？？？？？？ 为什么现在就使用晋升失败？
   if (!promotion_failed()) {
+    // 如果 不存在晋升失败,那么将eden和from都清空了
     // Swap the survivor spaces.
     eden()->clear(SpaceDecorator::Mangle);
     from()->clear(SpaceDecorator::Mangle);
@@ -614,11 +635,13 @@ void DefNewGeneration::collect(bool   full,
     assert(to()->is_empty(), "to space should be empty now");
 
     // Set the desired survivor size to half the real survivor space
+    // 重新计算回收阀值
     _tenuring_threshold =
       age_table()->compute_tenuring_threshold(to()->capacity()/HeapWordSize);
 
     // A successful scavenge should restart the GC time limit count which is
     // for full GC's.
+    // 当前自适应开关设置好
     AdaptiveSizePolicy* size_policy = gch->gen_policy()->size_policy();
     size_policy->reset_gc_overhead_limit_count();
     if (PrintGC && !PrintGCDetails) {
@@ -626,9 +649,11 @@ void DefNewGeneration::collect(bool   full,
     }
     assert(!gch->incremental_collection_failed(), "Should be clear");
   } else {
+    // 如果晋升失败了,那么就代表着当前还存在对象无法被清除 那么就先清除掉栈上分配数据
     assert(_promo_failure_scan_stack.is_empty(), "post condition");
     _promo_failure_scan_stack.clear(true); // Clear cached segments.
 
+    // 移除关注指针
     remove_forwarding_pointers();
     if (PrintGCDetails) {
       gclog_or_tty->print(" (promotion failed) ");
@@ -642,6 +667,7 @@ void DefNewGeneration::collect(bool   full,
     from()->set_next_compaction_space(to());
     gch->set_incremental_collection_failed();
 
+    // 老年代执行晋升失败处理流程
     // Inform the next generation that a promotion failure occurred.
     _next_gen->promotion_failure_occurred();
 

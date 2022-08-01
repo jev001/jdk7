@@ -41,6 +41,7 @@ private:
 
 public:
   GenerationSpec(Generation::Name name, size_t init_size, size_t max_size) {
+    // 存储年的的名称
     _name = name;
     _init_size = init_size;
     _max_size = max_size;

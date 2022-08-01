@@ -3073,6 +3073,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   ThreadLocalStorage::init();
 
   // Initialize global data structures and create system classes in heap
+  // 虚拟机全局参数的虚拟化
   vm_init_globals();
 
   // Attach the main thread to this os thread
@@ -3100,10 +3101,12 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // crash Linux VM, see notes in os_linux.cpp.
   main_thread->create_stack_guard_pages();
 
+    // 对象监控器！！！！
   // Initialize Java-Level synchronization subsystem
   ObjectMonitor::Initialize() ;
 
   // Initialize global modules
+  // 初始化所有模块, 特别是包含GC模块
   jint status = init_globals();
   if (status != JNI_OK) {
     delete main_thread;
@@ -3124,17 +3127,22 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // real raw monitor. VM is setup enough here for raw monitor enter.
   JvmtiExport::transition_pending_onload_raw_monitors();
 
+    // 校验堆内存
   if (VerifyBeforeGC &&
       Universe::heap()->total_collections() >= VerifyGCStartAt) {
     Universe::heap()->prepare_for_verify();
     Universe::verify();   // make sure we're starting with a clean slate
   }
 
+    // 创建虚拟机线程
   // Create the VMThread
   { TraceTime timer("Start VMThread", TraceStartupTime);
     VMThread::create();
+    // 获取当前虚拟机线程。  ？？？？？？？比较疑惑的是为啥分为两个步骤
     Thread* vmthread = VMThread::vm_thread();
 
+    // 创建系统线程, 放入当前的vmThread对象中. 用于后续对象真正能启动线程 
+    // 这么操作是为了解耦系统线程( 比如底部调用为pthread的真系统线程，或者是早期的greadThread假系统线程 )
     if (!os::create_thread(vmthread, os::vm_thread))
       vm_exit_during_initialization("Cannot create VM thread. Out of system resources.");
 
@@ -3166,6 +3174,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   JvmtiExport::enter_start_phase();
 
   // Notify JVMTI agents that VM has started (JNI is up) - nop if no agents.
+  // 开启JVMTI空间
   JvmtiExport::post_vm_start();
 
   {
@@ -3307,6 +3316,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     vm_exit_during_initialization(Handle(THREAD, PENDING_EXCEPTION));
   }
 
+// 如果是开启了序列化GC的实现方式 那么就需要查看一下并发标记和g1的初始化流程了
 #ifndef SERIALGC
   // Support for ConcurrentMarkSweep. This should be cleaned up
   // and better encapsulated. The ugly nested if test would go away

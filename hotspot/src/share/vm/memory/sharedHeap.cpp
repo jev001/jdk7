@@ -135,6 +135,7 @@ SharedHeap::StrongRootsScope::~StrongRootsScope() {
   // nothing particular
 }
 
+// 扫描共享堆空间中的引用对象
 void SharedHeap::process_strong_roots(bool activate_scope,
                                       bool collecting_perm_gen,
                                       ScanningOption so,

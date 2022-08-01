@@ -744,6 +744,7 @@ void* Universe::non_oop_word() {
   return (void*)non_oop_bits;
 }
 
+// 初始化堆内存
 jint universe_init() {
   assert(!Universe::_fully_initialized, "called after initialize_vtables");
   guarantee(1 << LogHeapWordSize == sizeof(HeapWord),
@@ -776,6 +777,7 @@ jint universe_init() {
     }
   }
 
+    // 初始化堆
   jint status = Universe::initialize_heap();
   if (status != JNI_OK) {
     return status;
@@ -881,6 +883,10 @@ char* Universe::preferred_heap_base(size_t heap_size, NARROW_OOP_MODE mode) {
 
 jint Universe::initialize_heap() {
 
+// PGC 和 G1 是需要开启SerialGC模块.  
+// 目前JDK支持 PGC,G1GC 和GenCollection 三种实现方式
+
+    // 使用并行GC
   if (UseParallelGC) {
 #ifndef SERIALGC
     Universe::_collectedHeap = new ParallelScavengeHeap();
@@ -888,6 +894,7 @@ jint Universe::initialize_heap() {
     fatal("UseParallelGC not supported in java kernel vm.");
 #endif // SERIALGC
 
+// 使用G1 GC
   } else if (UseG1GC) {
 #ifndef SERIALGC
     G1CollectorPolicy* g1p = new G1CollectorPolicy_BestRegionsFirst();
@@ -898,10 +905,12 @@ jint Universe::initialize_heap() {
 #endif // SERIALGC
 
   } else {
+    // gc策略 策略分为标记清除, 并发标记清除策略
     GenCollectorPolicy *gc_policy;
-
+    // Serial 启用普通GC
     if (UseSerialGC) {
       gc_policy = new MarkSweepPolicy();
+      // 启用CMS
     } else if (UseConcMarkSweepGC) {
 #ifndef SERIALGC
       if (UseAdaptiveSizePolicy) {
@@ -913,9 +922,11 @@ jint Universe::initialize_heap() {
     fatal("UseConcMarkSweepGC not supported in java kernel vm.");
 #endif // SERIALGC
     } else { // default old generation
+        // 标记清除策略
       gc_policy = new MarkSweepPolicy();
     }
 
+    // 创建GC收集器, 使用GenCollectHeadp 还有DefNewGenCollectionHeap
     Universe::_collectedHeap = new GenCollectedHeap(gc_policy);
   }
 
@@ -924,6 +935,7 @@ jint Universe::initialize_heap() {
     return status;
   }
 
+// 是否开启 指针压缩
 #ifdef _LP64
   if (UseCompressedOops) {
     // Subtract a page because something can get allocated at heap base.

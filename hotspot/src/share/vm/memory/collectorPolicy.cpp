@@ -776,19 +776,28 @@ bool GenCollectorPolicy::should_try_older_generation_allocation(
 
 MarkSweepPolicy::MarkSweepPolicy() {
   initialize_all();
+  // 简介调用到分钟init方法 比如 initialize_generations initialize_flag
 }
 
+// 普通的标记清除方式 这里面也用到了ParNew 那么也就是说 ParNew可以和Serial配合使用
 void MarkSweepPolicy::initialize_generations() {
   initialize_perm_generation(PermGen::MarkSweepCompact);
   _generations = new GenerationSpecPtr[number_of_generations()];
   if (_generations == NULL)
     vm_exit_during_initialization("Unable to allocate gen spec");
 
+// 使用cms辣鸡回收策略时，使用的是GenCollectedHeap 分代堆,策略是CMS
+// 其中新生代的堆是 parnew或者defNew
+// 老年代是MarkSweepCompact
+// 使用parnewgc并且 ParallelGCThreads>0
+// _generations[0] 年轻代 年轻带可以使用ParNew 和普通DefNew新声带方式
+// _generations[1] 老年代 只有MarkSweepCompact方式
   if (UseParNewGC && ParallelGCThreads > 0) {
     _generations[0] = new GenerationSpec(Generation::ParNew, _initial_gen0_size, _max_gen0_size);
   } else {
     _generations[0] = new GenerationSpec(Generation::DefNew, _initial_gen0_size, _max_gen0_size);
   }
+  // 
   _generations[1] = new GenerationSpec(Generation::MarkSweepCompact, _initial_gen1_size, _max_gen1_size);
 
   if (_generations[0] == NULL || _generations[1] == NULL)

@@ -717,7 +717,7 @@ LoadJavaVM(const char *jvmpath, InvocationFunctions *ifn)
     if (_launcher_debug) {
         printf("JVM path is %s\n", jvmpath);
     }
-
+    // 加载jvm.so文件 start
     libjvm = dlopen(jvmpath, RTLD_NOW + RTLD_GLOBAL);
     if (libjvm == NULL) {
 #if defined(__sparc) && !defined(_LP64) /* i.e. 32-bit sparc */
@@ -766,12 +766,16 @@ LoadJavaVM(const char *jvmpath, InvocationFunctions *ifn)
       fprintf(stderr, "dl failure on line %d", __LINE__);
       goto error;
     }
+    // 加载jvm.so文件 end
 
+    // 加载指定方法 JNI_CreateJavaVM start
     ifn->CreateJavaVM = (CreateJavaVM_t)
       dlsym(libjvm, "JNI_CreateJavaVM");
     if (ifn->CreateJavaVM == NULL)
         goto error;
+    // 加载指定方法 JNI_CreateJavaVM end
 
+    // 初始化启动参数
     ifn->GetDefaultJavaVMInitArgs = (GetDefaultJavaVMInitArgs_t)
         dlsym(libjvm, "JNI_GetDefaultJavaVMInitArgs");
     if (ifn->GetDefaultJavaVMInitArgs == NULL)

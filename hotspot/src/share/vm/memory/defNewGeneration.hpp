@@ -54,8 +54,11 @@ protected:
   void   init_assuming_no_promotion_failure();
   // True iff a promotion has failed in the current collection.
   bool   _promotion_failed;
+  // 晋升失败标记
   bool   promotion_failed() { return _promotion_failed; }
 
+// 晋升失败处理 
+// 在年轻代处理器无法将
   // Handling promotion failure.  A young generation collection
   // can fail if a live object cannot be copied out of its
   // location in eden or from-space during the collection.  If

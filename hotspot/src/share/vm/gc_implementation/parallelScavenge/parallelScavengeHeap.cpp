@@ -205,6 +205,7 @@ jint ParallelScavengeHeap::initialize() {
   double max_gc_pause_sec = ((double) MaxGCPauseMillis)/1000.0;
   double max_gc_minor_pause_sec = ((double) MaxGCMinorPauseMillis)/1000.0;
 
+// 多个年代 跨带年龄？？？
   _gens = new AdjoiningGenerations(main_rs,
                                    og_cur_size,
                                    og_min_size,
@@ -214,14 +215,20 @@ jint ParallelScavengeHeap::initialize() {
                                    yg_max_size,
                                    yg_align);
 
+
+// PS策略中 将堆内存分为年轻 老年代,永久代
+
+    // 老年代
   _old_gen = _gens->old_gen();
+  // 年轻代
   _young_gen = _gens->young_gen();
 
   const size_t eden_capacity = _young_gen->eden_space()->capacity_in_bytes();
   const size_t old_capacity = _old_gen->capacity_in_bytes();
   const size_t initial_promo_size = MIN2(eden_capacity, old_capacity);
   _size_policy =
-    new PSAdaptiveSizePolicy(eden_capacity,
+    new 
+    (eden_capacity,
                              initial_promo_size,
                              young_gen()->to_space()->capacity_in_bytes(),
                              intra_heap_alignment(),

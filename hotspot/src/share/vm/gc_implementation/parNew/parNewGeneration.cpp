@@ -1547,5 +1547,5 @@ const char* ParNewGeneration::name() const {
 }
 
 bool ParNewGeneration::in_use() {
-  return UseParNewGC && ParallelGCThreads > 0;
+return UseParNewGC && ParallelGCThreads > 0;
 }

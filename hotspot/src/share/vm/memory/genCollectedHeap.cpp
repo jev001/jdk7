@@ -84,9 +84,11 @@ GenCollectedHeap::GenCollectedHeap(GenCollectorPolicy *policy) :
 }
 
 jint GenCollectedHeap::initialize() {
+    // 初始化流程0: hook函数
   CollectedHeap::pre_initialize();
 
   int i;
+  // 该堆内存分为多少个区域，比如分为年前代和老年代，那就是两个
   _n_gens = gen_policy()->number_of_generations();
 
   // While there are no constraints in the GC code that HeapWordSize
@@ -99,10 +101,13 @@ jint GenCollectedHeap::initialize() {
   // The heap must be at least as aligned as generations.
   size_t alignment = Generation::GenGrain;
 
+    // 多个代的空间, 用于统计和分配
   _gen_specs = gen_policy()->generations();
+  // 永久代的空间大小
   PermanentGenerationSpec *perm_gen_spec =
                                 collector_policy()->permanent_generation();
 
+    // 每个年龄中的大小分配
   // Make sure the sizes are all aligned.
   for (i = 0; i < _n_gens; i++) {
     _gen_specs[i]->align(alignment);
@@ -130,6 +135,7 @@ jint GenCollectedHeap::initialize() {
   int n_covered_regions = 0;
   ReservedSpace heap_rs(0);
 
+    // 分配堆内存
   heap_address = allocate(alignment, perm_gen_spec, &total_reserved,
                           &n_covered_regions, &heap_rs);
 
@@ -151,6 +157,7 @@ jint GenCollectedHeap::initialize() {
     return JNI_ENOMEM;
   }
 
+    // 没存区域, 
   _reserved = MemRegion((HeapWord*)heap_rs.base(),
                         (HeapWord*)(heap_rs.base() + heap_rs.size()));
 
@@ -180,6 +187,7 @@ jint GenCollectedHeap::initialize() {
 #ifndef SERIALGC
   // If we are running CMS, create the collector responsible
   // for collecting the CMS generations.
+  // 是否开启cms策略，如果开启了cms策略需要开启cms收集线程
   if (collector_policy()->is_concurrent_mark_sweep_policy()) {
     bool success = create_cms_collector();
     if (!success) return JNI_ENOMEM;
@@ -711,6 +719,7 @@ void GenCollectedHeap::set_par_threads(int t) {
   _gen_process_strong_tasks->set_n_threads(t);
 }
 
+// 扫描GCROOTs
 void GenCollectedHeap::
 gen_process_strong_roots(int level,
                          bool younger_gens_as_roots,
@@ -722,6 +731,7 @@ gen_process_strong_roots(int level,
                          OopsInGenClosure* older_gens) {
   // General strong roots.
 
+    // 扫描强应用
   if (!do_code_roots) {
     SharedHeap::process_strong_roots(activate_scope, collecting_perm_gen, so,
                                      not_older_gens, NULL, older_gens);
@@ -732,6 +742,7 @@ gen_process_strong_roots(int level,
                                      not_older_gens, &code_roots, older_gens);
   }
 
+// 扫描新声带中所有的gcroots
   if (younger_gens_as_roots) {
     if (!_gen_process_strong_tasks->is_task_claimed(GCH_PS_younger_gens)) {
       for (int i = 0; i < level; i++) {
@@ -745,6 +756,7 @@ gen_process_strong_roots(int level,
   // older-gen scanning.
   for (int i = level+1; i < _n_gens; i++) {
     older_gens->set_generation(_gens[i]);
+    // yong中存在的引用地址给genes
     rem_set()->younger_refs_iterate(_gens[i], older_gens);
     older_gens->reset_generation();
   }

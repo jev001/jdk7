@@ -60,11 +60,14 @@ ConcurrentMarkSweepPolicy::ConcurrentMarkSweepPolicy() {
 }
 
 void ConcurrentMarkSweepPolicy::initialize_generations() {
+    // 初始化永久代
   initialize_perm_generation(PermGen::ConcurrentMarkSweep);
+  // 分带空间
   _generations = new GenerationSpecPtr[number_of_generations()];
   if (_generations == NULL)
     vm_exit_during_initialization("Unable to allocate gen spec");
 
+    // 是否使用了parNew?  当前是否启用了parnew？分配内存空间有用到
   if (ParNewGeneration::in_use()) {
     if (UseAdaptiveSizePolicy) {
       _generations[0] = new GenerationSpec(Generation::ASParNew,
@@ -74,13 +77,16 @@ void ConcurrentMarkSweepPolicy::initialize_generations() {
                                            _initial_gen0_size, _max_gen0_size);
     }
   } else {
+    // 没有配置parnew的情况下使用普通的年龄带
     _generations[0] = new GenerationSpec(Generation::DefNew,
                                          _initial_gen0_size, _max_gen0_size);
   }
+  // 对老年代的收集器
   if (UseAdaptiveSizePolicy) {
     _generations[1] = new GenerationSpec(Generation::ASConcurrentMarkSweep,
                             _initial_gen1_size, _max_gen1_size);
   } else {
+    //cms垃圾处理器可以不是 parnew这个是资料中没有写的
     _generations[1] = new GenerationSpec(Generation::ConcurrentMarkSweep,
                             _initial_gen1_size, _max_gen1_size);
   }

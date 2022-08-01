@@ -39,13 +39,17 @@
 Generation* GenerationSpec::init(ReservedSpace rs, int level,
                                  GenRemSet* remset) {
   switch (name()) {
+    // 默认新生代 
     case Generation::DefNew:
       return new DefNewGeneration(rs, init_size(), level);
 
+// 标记清除-压缩
     case Generation::MarkSweepCompact:
+    // 老年代普通的 有TrainGeneration 被去除了
       return new TenuredGeneration(rs, init_size(), level, remset);
 
 #ifndef SERIALGC
+    // 有promotion_faild
     case Generation::ParNew:
       return new ParNewGeneration(rs, init_size(), level);
 
@@ -55,6 +59,7 @@ Generation* GenerationSpec::init(ReservedSpace rs, int level,
                                     init_size() /* min size */,
                                     level);
 
+    // 并发标记清除
     case Generation::ConcurrentMarkSweep: {
       assert(UseConcMarkSweepGC, "UseConcMarkSweepGC should be set");
       CardTableRS* ctrs = remset->as_CardTableRS();
@@ -66,6 +71,7 @@ Generation* GenerationSpec::init(ReservedSpace rs, int level,
       // else registers with an existing CMSCollector
 
       ConcurrentMarkSweepGeneration* g = NULL;
+      // 并发标记的使用了cardTable
       g = new ConcurrentMarkSweepGeneration(rs,
                  init_size(), level, ctrs, UseCMSAdaptiveFreeLists,
                  (FreeBlockDictionary::DictionaryChoice)CMSDictionaryChoice);

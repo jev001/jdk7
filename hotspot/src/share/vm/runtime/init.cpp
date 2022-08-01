@@ -95,6 +95,7 @@ jint init_globals() {
   codeCache_init();
   VM_Version_init();
   stubRoutines_init1();
+  // 初始化堆
   jint status = universe_init();  // dependent on codeCache_init and stubRoutines_init
   if (status != JNI_OK)
     return status;
@@ -106,6 +107,7 @@ jint init_globals() {
   templateTable_init();
   InterfaceSupport_init();
   SharedRuntime::generate_stubs();
+  // 
   universe2_init();  // dependent on codeCache_init and stubRoutines_init
   referenceProcessor_init();
   jni_handles_init();
@@ -119,6 +121,7 @@ jint init_globals() {
   compilationPolicy_init();
   VMRegImpl::set_regName();
 
+    // 堆初始话后的流程
   if (!universe_post_init()) {
     return JNI_ERR;
   }

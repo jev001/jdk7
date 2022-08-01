@@ -207,6 +207,7 @@ void ReferenceProcessor::process_discovered_references(
   // Soft references
   {
     TraceTime tt("SoftReference", trace_time, false, gclog_or_tty);
+    // 引用列表
     process_discovered_reflist(_discoveredSoftRefs, _current_soft_ref_policy, true,
                                is_alive, keep_alive, complete_gc, task_executor);
   }

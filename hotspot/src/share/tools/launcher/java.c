@@ -220,6 +220,7 @@ struct JavaMainArgs {
   InvocationFunctions ifn;
 };
 
+// 启动节点
 /*
  * Entry point.
  */
@@ -269,7 +270,7 @@ main(int argc, char ** argv)
       for(i = 0; i < argc+1; i++)
         original_argv[i] = argv[i];
     }
-
+    // 创建执行环境
     CreateExecutionEnvironment(&argc, &argv,
                                jrepath, sizeof(jrepath),
                                jvmpath, sizeof(jvmpath),
@@ -280,8 +281,11 @@ main(int argc, char ** argv)
     ifn.CreateJavaVM = 0;
     ifn.GetDefaultJavaVMInitArgs = 0;
 
+    // 启动耗时使用 CounterGet
     if (_launcher_debug)
       start = CounterGet();
+    // 加载JVM,主要作用是从lib中获取jni_createVm的方法. 用于启动
+    // ifn.createVm 和ifn.initArgs
     if (!LoadJavaVM(jvmpath, &ifn)) {
       exit(6);
     }
@@ -377,6 +381,12 @@ main(int argc, char ** argv)
       }
     }
 
+    // java启动 前置步骤是准备启动，
+    // 1. 准备阶段包含重要的 从libjava.so中获取 createVm方法
+    // 2. 初始化启动initArgs
+    // 3. 准备启动环境
+    // 4. 修改启动initArgs
+    // 5. 启动JVM====>JavaMain方法
     { /* Create a new thread to create JVM and invoke main method */
       struct JavaMainArgs args;
 
@@ -390,6 +400,7 @@ main(int argc, char ** argv)
     }
 }
 
+// JVM启动流程
 int JNICALL
 JavaMain(void * _args)
 {
@@ -418,8 +429,10 @@ JavaMain(void * _args)
 
     /* Initialize the virtual machine */
 
+    // 初始化虚拟机====>创建vm的过程 重要☆☆☆☆☆
     if (_launcher_debug)
         start = CounterGet();
+        // 初始化了vm 但是没有看到gc????
     if (!InitializeJVM(&vm, &env, &ifn)) {
         ReportErrorMessage("Could not create the Java virtual machine.",
                            JNI_TRUE);
@@ -1284,7 +1297,7 @@ InitializeJVM(JavaVM **pvm, JNIEnv **penv, InvocationFunctions *ifn)
             printf("    option[%2d] = '%s'\n",
                    i, args.options[i].optionString);
     }
-
+    // 创建虚拟机 调用JNI_createVM方法进行创建VM
     r = ifn->CreateJavaVM(pvm, (void **)penv, &args);
     JLI_MemFree(options);
     return r == JNI_OK;

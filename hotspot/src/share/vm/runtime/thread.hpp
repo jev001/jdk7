@@ -707,6 +707,7 @@ class CompilerThread;
 
 typedef void (*ThreadFunction)(JavaThread*, TRAPS);
 
+// JavaThrea Start
 class JavaThread: public Thread {
   friend class VMStructs;
  private:
@@ -1649,6 +1650,8 @@ public:
   int get_claimed_par_id() { return _claimed_par_id; }
   void set_claimed_par_id(int id) { _claimed_par_id = id;}
 };
+// JavaThrea End
+
 
 // Inline implementation of JavaThread::current
 inline JavaThread* JavaThread::current() {

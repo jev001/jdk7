@@ -245,6 +245,7 @@ void VMThread::destroy() {
   }
 }
 
+// 虚拟机线程真正执行的地方
 void VMThread::run() {
   assert(this == vm_thread(), "check");
 
@@ -379,6 +380,7 @@ void VMThread::evaluate_operation(VM_Operation* op) {
 }
 
 
+// 虚拟机线程循环执行的地方
 void VMThread::loop() {
   assert(_cur_vm_operation == NULL, "no current one should be executing");
 

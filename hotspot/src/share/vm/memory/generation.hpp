@@ -131,12 +131,17 @@ class Generation: public CHeapObj {
 
  public:
   // The set of possible generation kinds.
+  // 使用不同的年代。
   enum Name {
     ASParNew,
     ASConcurrentMarkSweep,
+    // CMS 年轻代,不开启parnew的情况下
     DefNew,
+    // CMS 年轻代,开启parnew的情况下
     ParNew,
+    // CMS老年代
     MarkSweepCompact,
+    // CMS并发标记年代
     ConcurrentMarkSweep,
     Other
   };
